@@ -1,0 +1,13 @@
+
+#!/bin/sh
+#
+cd edi
+topno=`ls ip/sent | sort -n | tail -1`
+echo Sending from ip/sent/$topno
+sleep 3
+cd ip/sent/$topno
+sz *dat
+#test $? -eq 0 && echo Success && exit 0
+#echo FAILED TO SEND BATCH $topno
+#exit 2
+

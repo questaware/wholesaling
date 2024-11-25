@@ -1,0 +1,280 @@
+
+ifneq ($(DIAG),0)
+DDBG=-DDBG=1
+endif
+
+CCFLAGS = $(MM) -ggdb -I. $(DDBG)
+#CCFLAGS = -O -I.
+LFLAGS= $(MM) -ggdb
+#LFLAGS=-Xlinker -M
+#LFLAGS=
+
+LKB=-DLK_BASE=0xdc00
+
+#VPATH=$(HERE)
+#VPATH+=:$(HERE)..
+#VPATH+=:$(HERE)../form
+#VPATH+=:$(HERE)../db
+#VPATH+=:$(HERE)../env
+#VPATH+=:$(HERE)../tt
+VPATH+=:$(HERE)../util
+
+.SUFFIXES: .c .o .asm .cpp .i
+
+UTOBJS  = util.o extutil.o prepargs.o dict.o procstac.o sort.o
+
+alll : book booklock
+
+here :
+	echo $(HERE)
+
+util.o : util.c
+	cc $(CCFLAGS) -c $(<)
+
+extutil.o : ../../util/extutil.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+dict.o : ../../util/dict.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+prepargs.o : ../../util/prepargs.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+sort.o : ../../util/sort.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+DBOBJS = b_tree.o cache.o page.o recs.o initdb.o
+
+b_tree.o : ../../db/b_tree.c
+	cc $(CCFLAGS) -c ../../db/$(@:.o=.c)
+d_tree.o : ../../db/d_tree.c
+	cc $(CCFLAGS) -c ../../db/$(@:.o=.c)
+cache.o : ../../db/cache.c
+	cc $(CCFLAGS) $(LKB) -c ../../db/$(@:.o=.c)
+cache.s : ../../db/cache.c
+	cc $(CCFLAGS) -S $(LKB) -c ../../db/$(@:.s=.c)
+rawlocks.o : ../../db/rawlocks.c
+	cc $(CCFLAGS) -c ../../db/$(@:.o=.c)
+page.o : ../../db/page.c
+	cc $(CCFLAGS) -c ../../db/$(@:.o=.c)
+recs.o : ../../db/recs.c
+	cc $(CCFLAGS) -c ../../db/$(@:.o=.c)
+
+db.h: ../../db/db.x
+	ln -f ../../db/db.x db.x
+	rpcgen -N db.x
+	rm db.x
+
+dn.h: ../../db/dn.x
+	ln -f ../../db/dn.x dn.x
+	rpcgen -N dn.x
+	rm dn.x
+
+FOBJS = form.o fmtform.o date.o paper.o verify.o
+
+env.o : ../../env/env.c
+	cc $(CCFLAGS) -c ../../env/$(@:.o=.c)
+
+form.o : ../../form/form.c
+	cc $(CCFLAGS) -c ../../form/$(@:.o=.c)
+
+paper.o : ../../form/paper.c
+	cc $(CCFLAGS) -c ../../form/$(@:.o=.c)
+
+fmtform.o : ../../form/fmtform.c
+	cc $(CCFLAGS) -c ../../form/$(@:.o=.c)
+
+verify.o : ../../form/verify.c
+	cc $(CCFLAGS) -c ../../form/$(@:.o=.c)
+
+date.o : ../../form/date.c
+	cc $(CCFLAGS) -c ../../form/$(@:.o=.c)
+
+sadate.o : ../../form/date.c
+	cc $(CCFLAGS) -o sadate.o -DSTANDALONE=1 -c ../../form/date.c
+
+initdb.o : ../../osdb/scts/initdb.c ../../osdb/domains.h
+	cc $(CCFLAGS) -c ../../osdb/scts/$(@:.o=.c)
+
+actions.o : ../../db/actions.c dump.c.c
+	cc $(CCFLAGS) -w -c -I. -I../../osdb/ ../../db/$(@:.o=.c)
+
+cvt.o : ../../db/scts/cvt.c
+	cc $(CCFLAGS) -c ../../db/scts/cvt.c
+
+cvtdb.o : ../../db/scts/cvtdb.c dump.c.c
+	cc $(CCFLAGS) -c -I. -I../../h -I../../osdb -w ../../db/scts/cvtdb.c
+
+cvtdb : cvtdb.o  cvt.o    $(DBOBJS) d_tree.o \
+ util.o prepargs.o procstac.o verify.o
+	cc $(LDFLAGS) -o $@ util.o prepargs.o \
+	        ${DBOBJS} d_tree.o cvtdb.o cvt.o procstac.o verify.o 
+
+control_panel.o : ../../osdb/control_panel.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+control_panel : control_panel.o  cache.o
+	cc $(LDFLAGS) -o control_panel control_panel.o  cache.o
+
+dump.c.c : ../../osdb/domains.h ../../db/scts/passes
+	../../db/scts/passes -o dump.c.t ../../osdb/domains.h ;\
+	 sed -f ../../osdb/scts/bcix.sed dump.c.t  > dump.c.c
+
+generic.o : ../../osdb/generic.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+accmatch.o : ../../osdb/accmatch.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+asmstr.o : asmstr.s
+	masm -t asmstr.s
+
+agent.o : ../../osdb/agent.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+journal.o : ../../osdb/journal.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+party.o : ../../osdb/party.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+stkitem.o : ../../osdb/stkitem.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+invo.o : ../../osdb/invo.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+acct.o : ../../osdb/acct.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+take.o : ../../osdb/take.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+prtrs.o : ../../osdb/prtrs.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+control.o : ../../osdb/control.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+book.o : ../../osdb/book.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+booklock.o : ../../osdb/booklock.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+recover.o : ../../osdb/recover.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+BOBJ = agent.o control.o generic.o take.o accmatch.o journal.o
+
+TOBJ = party.o stkitem.o invo.o acct.o prtrs.o book.o actions.o memsort.o
+
+book : $(UTOBJS) env.o $(DBOBJS) $(FOBJS) $(BOBJ) $(TOBJ) toucher npg
+	cc $(LFLAGS) -o $@ \
+	  util.o extutil.o procstac.o prepargs.o sort.o env.o \
+	  $(DBOBJS) $(FOBJS) $(BOBJ) $(TOBJ) -L/usr/lib/termcap -ltermcap
+
+recover : $(UTOBJS) env.o $(DBOBJS) $(FOBJS) $(BOBJ) recover.o actions.o toucher
+	cc $(LFLAGS) -o $@ \
+ util.o extutil.o prepargs.o env.o $(DBOBJS) \
+ $(FOBJS) $(BOBJ) procstac.o recover.o actions.o -L/usr/lib/termcap -ltermcap
+
+booklock : cache.o util.o booklock.o initdb.o page.o rawlocks.o toucher
+	cc $(CCFLAGS) -o $@  cache.o initdb.o page.o util.o booklock.o rawlocks.o
+
+trail : ../../osdb/trail.c util.o prepargs.o procstac.o
+	cc $(CCFLAGS) -o trail util.o prepargs.o procstac.o ../../osdb/trail.c
+
+cleanup : ../../db/cleanup.c cache.o rawlocks.o initdb.o page.o util.o recs.o
+	cc $(CCFLAGS) -o cleanup util.o cache.o rawlocks.o initdb.o page.o recs.o ../../db/cleanup.c
+
+sadate: sadate.o
+	cc -o sadate sadate.o
+
+monitor : ../../osdb/monitor.c util.o prepargs.o $(DBOBJS)
+	cc $(CCFLAGS) -o monitor util.o prepargs.o $(DBOBJS) ../../osdb/monitor.c
+
+plsort : ../../osdb/plsort.c util.o prepargs.o sort.o procstac.o 
+	cc $(CCFLAGS) -o plsort ../../osdb/plsort.c util.o prepargs.o sort.o procstac.o
+
+npg :
+	echo sh -c /u/local/bin/npgrp
+
+accmatch : ../accmatch.c util.o
+	cc $(CCFLAGS) -DSALONE=1 -o accmatch util.o ../accmatch.c
+
+memsort.o : ../../util/memsort.c
+	cc  $(CCFLAGS) -DSORTTYPE=0 -c ../../util/memsort.c
+
+memsort : ../../util/memsort.c
+	cc  $(CCFLAGS) -DSALONE=1 -DSORTTYPE=0 -o memsort ../../util/memsort.c
+
+ssort : ../../util/memsort.c
+	cc  $(CCFLAGS) -DSALONE=1 -DSORTTYPE=1 -o ssort ../../util/memsort.c
+
+procstac.o : ../../util/procstac.c
+	cc $(CCFLAGS)  -c ../../util/$(@:.o=.c)
+
+ptest: ../ptest.c util.o procstac.o
+	cc $(CCFLAGS) -o ptest util.o procstac.o ../ptest.c
+	
+test_tt: ../../tt/test_tt.c
+	cc $(CCFLAGS) -o test_tt ../../tt/test_tt.c
+	
+test: test.c env.o $(UTOBJS) $(FOBJS)
+	cc $(LFLAGS) $(CCFLAGS) -o test env.o $(UTOBJS) $(FOBJS) \
+        test.c \
+        -L/usr/lib/termcap -ltermcap
+	
+now: ../now.c date.o
+	cc $(CCFLAGS) -o now date.o ../now.c
+
+socserv: ../socserv.c  util.o
+	cc $(CCFLAGS) -o socserv ../socserv.c util.o
+
+soctest: ../soctest.c  util.o
+	cc $(CCFLAGS) -o soctest ../soctest.c util.o
+
+socclnt: ../socclnt.c  util.o
+	cc $(CCFLAGS) -o socclnt ../socclnt.c util.o
+
+bigtree.o: ../bigtree.c
+	cc $(CCFLAGS) -c ../../osdb/$(@:.o=.c)
+
+bigtree: bigtree.o ${DBOBJS} date.o
+	cc $(LFLAGS) -o $@ \
+	  util.o extutil.o procstac.o prepargs.o env.o date.o actions.o \
+	  verify.o \
+	  $(DBOBJS) bigtree.o control.o -L/usr/lib/termcap -ltermcap
+
+md5.o: ../../tt/md5.c
+	cc $(CCFLAGS) -c ../../tt/$(@:.o=.c)
+
+%.i : %.cpp
+	@gcc -MM $(CCFLAGS) $< > tmp.dat
+	@tr "\\" ' ' < tmp.dat | tr " " '\n' | sed -e 's_/[a-z][a-z]*/[.][.]__g'
+#	rm tmp.dat
+
+%.i : %.c
+	@gcc -MM $(CCFLAGS) $< > tmp.dat
+	@tr "\\" ' ' < tmp.dat | tr " " '\n' | sed -e 's_/[a-z][a-z]*/[.][.]__g'
+#	rm tmp.dat
+
+tt_route.o: ../../tt/tt_route.cpp
+	g++ $(CCFLAGS) -c ../../tt/$(@:.o=.cpp)
+
+tt_route: tt_route.o util.o procstac.o md5.o
+	g++ $(LFLAGS) -o $@ -lcurl tt_route.o util.o procstac.o md5.o \
+          -L/usr/lib/termcap -ltermcap -lcurl -lcrypto
+
+md5_example: ../../tt/md5_example.c
+	cc $(CCFLAGS) -lcrypto -o md5_example ../../tt/md5_example.c
+
+md5_ex2: ../../tt/md5_ex2.c
+	cc $(CCFLAGS) -lcrypto -o md5_ex2 ../../tt/md5_ex2.c
+
+md5_ex3: ../../tt/md5_ex3.c
+	cc $(CCFLAGS) -lcrypto -o md5_ex3 ../../tt/md5_ex3.c
+
+clean:
+	rm -f *.o book tt_route

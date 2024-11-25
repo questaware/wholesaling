@@ -1,0 +1,23 @@
+CCFLAGS = -ggdb -I../../osdb/unix
+#CCFLAGS = -O -I../../osdb/unix
+
+passes : passes.c util.o dict.o prepargs.o procstac.o
+	cc $(CCFLAGS) -o $@ util.o dict.o prepargs.o procstac.o passes.c
+
+util.o : ../../util/util.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+util.i : ../../util/util.c
+	cc $(CCFLAGS) -E ../../util/$(@:.i=.c)
+
+dict.o : ../../util/dict.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+prepargs.o : ../../util/prepargs.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+procstac.o : ../../util/procstac.c
+	cc $(CCFLAGS) -c ../../util/$(@:.o=.c)
+
+CLEAN :
+	rm passes passes.o util.o dict.o prepargs.o procstac.o
